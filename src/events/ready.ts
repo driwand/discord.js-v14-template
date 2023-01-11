@@ -17,10 +17,9 @@ const loadSettings = async (client: BClient) => {
 		if (!allSet) return;
 		for (const set of allSet) {
 			const serverSet: serverSettings = {
-				prefix: set.prefix,
-				managerRole: set.managerRoleId
+				managerRoleId: set.managerRoleId
 			};
-			client.serverSettings.set(set.serverId, serverSet);
+			client.serverSettings.set(set.guildId, serverSet);
 		}
 	} catch (error) {
 		console.error(error);

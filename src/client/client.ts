@@ -1,10 +1,10 @@
 import { Client, Collection, ClientOptions, GatewayIntentBits } from 'discord.js';
-import { defaultPrefix } from '../config/config';
+import { serverSettings } from '../interfaces/serverSettings';
+import loadSlashCommands from '../utils/loadSlashCommands';
 import { Command } from '../interfaces/command';
 import { Event } from '../interfaces/event';
-import fs from 'fs';
 import path from 'path';
-import { serverSettings } from '../interfaces/serverSettings';
+import fs from 'fs';
 
 let filesExtension = '.js';
 if (process.env.NODE_ENV !== 'production') filesExtension = '.ts';
@@ -13,7 +13,7 @@ class BotClient extends Client {
 	public commands: Collection<string, Command> = new Collection();
 	public events: Collection<string, Event> = new Collection();
 	public serverSettings: Collection<string, serverSettings> = new Collection();
-	public defaultPrefix: string = defaultPrefix;
+	public cooldowns: Collection<string, number> = new Collection();
 
 	constructor(options: ClientOptions) {
 		super(options);
@@ -24,21 +24,18 @@ class BotClient extends Client {
 		// load commands
 		const commandsPath = path.join(__dirname, '..', 'commands');
 		const commandFiles = fs.readdirSync(commandsPath).filter((file) => file.endsWith(filesExtension));
+		const arrayCommands = []
 
 		for (const file of commandFiles) {
 			const { command } = await import(`${commandsPath}/${file}`);
 			if (!command) continue;
 
 			if (process.env.NODE_ENV !== 'production') console.log(`Loading: ${file} as ${command.name}`);
-
+			arrayCommands.push(command);
 			this.commands.set(command.name, command);
-			if (!command?.aliases) continue;
-
-			command.aliases.forEach((alias: string) => {
-				this.commands.set(alias, command);
-				if (process.env.NODE_ENV !== 'production') console.log(`Loading: ${file} as ${alias}`);
-			});
 		}
+
+		loadSlashCommands(arrayCommands);
 
 		// load events
 		const eventsPath = path.join(__dirname, '..', 'events');
@@ -54,15 +51,17 @@ class BotClient extends Client {
 	}
 }
 
-export default new BotClient({
+const client = new BotClient({
 	intents: [
 		GatewayIntentBits.Guilds,
-		GatewayIntentBits.DirectMessages,
 		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.MessageContent,
 		GatewayIntentBits.GuildMessageReactions,
-		GatewayIntentBits.DirectMessageReactions,
-		GatewayIntentBits.MessageContent
+		GatewayIntentBits.DirectMessages,
+		GatewayIntentBits.GuildMembers
 	]
 });
+
+export default client;
 
 export type BClient = BotClient;

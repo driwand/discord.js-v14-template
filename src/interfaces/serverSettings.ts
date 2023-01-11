@@ -1,4 +1,3 @@
 export interface serverSettings {
-	prefix?: string;
-	managerRole?: string | null;
+	managerRoleId?: string | null;
 }
