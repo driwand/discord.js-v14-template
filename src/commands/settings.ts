@@ -12,8 +12,15 @@ interface InputOptions {
 	serverSettings: serverSettings;
 }
 
+const dbMapper = {
+	role: 'managerRoleId',
+	prefix: 'prefix'
+};
+
+const validOptions = ['role'];
+
 export const command: Command = {
-	name: 'setting',
+	name: 'settings',
 	description: 'Change the bot settings',
 	category: 'admin',
 	options: setting,
@@ -22,14 +29,22 @@ export const command: Command = {
 		try {
 			if (!interaction.guild || !interaction.isChatInputCommand()) return;
 			const guildId = interaction.guild.id;
-			const role = interaction.options.getRole('role');
 			const unset = interaction.options.get('unset');
-			const currentSet = client.serverSettings.get(guildId);
-			const serverSettings: serverSettings = {
-				...((role || currentSet) && {
-					managerRoleId: unset?.value === 'role' ? null : role ? role.id : currentSet?.managerRoleId
-				})
-			};
+			const userOptions = validOptions.map((elm) => interaction.options.get(elm)).filter((e) => e);
+			let serverSettings: Partial<serverSettings>;
+			if (!unset) {
+				serverSettings = userOptions.reduce((prev: Partial<serverSettings>, elm) => {
+					if (!elm) return prev;
+					const dbField = dbMapper[elm.name as keyof typeof dbMapper];
+					prev[dbField] = elm.value;
+					return prev;
+				}, {});
+			} else {
+				const dbField = dbMapper[unset.value as keyof typeof dbMapper];
+				serverSettings = {
+					[dbField as keyof typeof serverSettings]: null
+				};
+			}
 			const options: InputOptions = { unset, serverSettings };
 			await saveChanges(client, guildId, options);
 			await sendInfo(client, interaction);
@@ -41,8 +56,10 @@ export const command: Command = {
 
 const saveChanges = async (client: BClient, guildId: string, options: InputOptions) => {
 	const { serverSettings } = options;
-	await Setting.create({ guildId: guildId, ...serverSettings } as Setting).save();
-	client.serverSettings.set(guildId, { ...(serverSettings as Setting) });
+	await Setting.create({ guildId, ...serverSettings } as Setting).save();
+	const settings = await Setting.findOneBy({ guildId });
+	if (!settings) return;
+	client.serverSettings.set(guildId, settings);
 };
 
 const sendInfo = async (client: BClient, interaction: CommandInteraction) => {
