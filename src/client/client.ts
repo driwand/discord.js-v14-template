@@ -19,35 +19,45 @@ class BotClient extends Client {
 		super(options);
 	}
 
-	// prettier-ignore
 	public async init(): Promise<void> {
 		// load commands
-		const commandsPath = path.join(__dirname, '..', 'commands');
-		const commandFiles = fs.readdirSync(commandsPath).filter((file) => file.endsWith(filesExtension));
-		const arrayCommands = []
+		const arrayCommands: Command[] = [];
 
-		for (const file of commandFiles) {
-			const { command } = await import(`${commandsPath}/${file}`);
-			if (!command) continue;
-
-			if (process.env.NODE_ENV !== 'production') console.log(`Loading: ${file} as ${command.name}`);
-			arrayCommands.push(command);
-			this.commands.set(command.name, command);
-		}
+		arrayCommands.push(...((await this.readCommands('commands')) as Command[]));
+		arrayCommands.push(...((await this.readCommands('menuCommands')) as Command[]));
 
 		loadSlashCommands(arrayCommands);
 
 		// load events
 		const eventsPath = path.join(__dirname, '..', 'events');
-		const eventsFiles = fs
-			.readdirSync(eventsPath)
-			.filter((file) => file.endsWith(filesExtension));
+		const eventsFiles = fs.readdirSync(eventsPath).filter((file) => file.endsWith(filesExtension));
 		for (const file of eventsFiles) {
 			const { event } = await import(`${eventsPath}/${file}`);
 			if (!event) continue;
 			this.events.set(event.name, event);
 			this.on(event.name, event.execute.bind(null, this));
 		}
+	}
+
+	async readCommands(folderName: string) {
+		const arrayCommands = [];
+		const commandsPath = path.join(__dirname, '..', folderName);
+		const commandFiles = fs.readdirSync(commandsPath).filter((file) => file.endsWith(filesExtension));
+		for (const file of commandFiles) {
+			const commandFile = await import(`${commandsPath}/${file}`);
+			if (!commandFile) continue;
+			const command = commandFile.command as Command;
+			if (command.menuCommandData) {
+				arrayCommands.push(command.menuCommandData.toJSON());
+			} else {
+				arrayCommands.push(command);
+			}
+			if (process.env.NODE_ENV !== 'production') {
+				console.log(`Loading: ${file} as ${command.name}`);
+			}
+			this.commands.set(command.name, command);
+		}
+		return arrayCommands;
 	}
 }
 

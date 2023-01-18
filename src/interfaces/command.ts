@@ -1,4 +1,4 @@
-import { ApplicationCommandOptionData, CommandInteraction } from 'discord.js';
+import { ApplicationCommandOptionData, CommandInteraction, ContextMenuCommandBuilder } from 'discord.js';
 import Client from '../client/client';
 
 export interface Command {
@@ -10,6 +10,7 @@ export interface Command {
 	category?: 'user' | 'admin';
 	cooldown?: number;
 	serverOwnerOnly?: boolean;
+	menuCommandData?: ContextMenuCommandBuilder;
 
 	execute: (client: typeof Client, message: CommandInteraction) => Promise<any>;
 }
