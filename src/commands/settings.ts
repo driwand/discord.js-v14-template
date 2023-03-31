@@ -5,19 +5,21 @@ import { Setting } from '../entities/Setting';
 import { Command } from '../interfaces/command';
 import setting from '../commandOptions/setting';
 import { getServerSettings } from '../utils/utils';
-import { serverSettings } from '../interfaces/serverSettings';
+
+type SettingType = {
+	[key: string]: any;
+} & Partial<Setting>;
 
 interface InputOptions {
 	unset: CommandInteractionOption<CacheType> | null;
-	serverSettings: serverSettings;
+	serverSettings: SettingType;
 }
 
 const dbMapper = {
-	role: 'managerRoleId',
-	prefix: 'prefix'
+	role: 'managerRoleId'
 };
 
-const validOptions = ['role'];
+const validOptions = Object.keys(dbMapper);
 
 export const command: Command = {
 	name: 'settings',
@@ -31,9 +33,9 @@ export const command: Command = {
 			const guildId = interaction.guild.id;
 			const unset = interaction.options.get('unset');
 			const userOptions = validOptions.map((elm) => interaction.options.get(elm)).filter((e) => e);
-			let serverSettings: Partial<serverSettings>;
+			let serverSettings: Partial<SettingType>;
 			if (!unset) {
-				serverSettings = userOptions.reduce((prev: Partial<serverSettings>, elm) => {
+				serverSettings = userOptions.reduce((prev: Partial<SettingType>, elm) => {
 					if (!elm) return prev;
 					const dbField = dbMapper[elm.name as keyof typeof dbMapper];
 					prev[dbField] = elm.value;

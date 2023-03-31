@@ -1,10 +1,10 @@
 import { Client, Collection, ClientOptions, GatewayIntentBits } from 'discord.js';
-import { serverSettings } from '../interfaces/serverSettings';
 import loadSlashCommands from '../utils/loadSlashCommands';
 import { Command } from '../interfaces/command';
 import { Event } from '../interfaces/event';
 import path from 'path';
 import fs from 'fs';
+import { Setting } from '../entities/Setting';
 
 let filesExtension = '.js';
 if (process.env.NODE_ENV !== 'production') filesExtension = '.ts';
@@ -12,7 +12,7 @@ if (process.env.NODE_ENV !== 'production') filesExtension = '.ts';
 class BotClient extends Client {
 	public commands: Collection<string, Command> = new Collection();
 	public events: Collection<string, Event> = new Collection();
-	public serverSettings: Collection<string, serverSettings> = new Collection();
+	public serverSettings: Collection<string, Setting> = new Collection();
 	public cooldowns: Collection<string, number> = new Collection();
 
 	constructor(options: ClientOptions) {
